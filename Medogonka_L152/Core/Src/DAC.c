@@ -1,4 +1,4 @@
-#include "dac.h"
+#include <DAC.h>
 
 DAC_HandleTypeDef hdac;
 
@@ -12,7 +12,7 @@ void MX_DAC_Init(void)
   hdac.Instance = DAC;
   if (HAL_DAC_Init(&hdac) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(3);
   }
   /** DAC channel OUT1 config
   */
@@ -20,7 +20,7 @@ void MX_DAC_Init(void)
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(3);
   }
 
 }

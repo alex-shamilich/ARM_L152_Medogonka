@@ -6,6 +6,34 @@ UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 
+
+//=======================================================================================
+/* Private function prototypes -----------------------------------------------*/
+#ifdef __GNUC__
+/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
+   set to 'Yes') calls __io_putchar() */
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+//=======================================================================================
+
+//=======================================================================================
+/**
+  * @brief	Переопределение функции вывода симвода для того чтобы printf из стандартной C библиотеки выводил данные в виртуальный COM-порт через USART2
+  * 		Retargets the C library printf function to the USART.
+  */
+PUTCHAR_PROTOTYPE
+{
+  /* USART implementation of fputc  */
+  /* e.g. write a character to the USART2 and Loop until the end of transmission */
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 100);		// вывод для отладки в виртуальный порт ПК		[115200bps 8N1]
+  //HAL_UART_Transmit(&huart4, (uint8_t *)&ch, 1, 100);		// вывод для ПК									[115200bps 8N1]
+//    huart2.Instance->DR = (uint8_t *)ch;
+  return ch;
+}
+//=======================================================================================
+
 //======================================================================================
 void MX_USART1_UART_Init(void)
 {
@@ -20,7 +48,7 @@ void MX_USART1_UART_Init(void)
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart1) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(5);
   }
 
 }
@@ -38,7 +66,7 @@ void MX_USART2_UART_Init(void)
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(5);
   }
 
 }
@@ -56,7 +84,7 @@ void MX_USART3_UART_Init(void)
   huart3.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart3) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(5);
   }
 
 }
@@ -74,7 +102,7 @@ void MX_UART4_Init(void)
   huart4.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart4) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(5);
   }
 
 }
@@ -92,7 +120,7 @@ void MX_UART5_Init(void)
   huart5.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart5) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(5);
   }
 
 }

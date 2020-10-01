@@ -1,4 +1,4 @@
-#include "adc.h"
+#include <ADC.h>
 
 ADC_HandleTypeDef hadc;
 
@@ -26,7 +26,7 @@ void MX_ADC_Init(void)
   hadc.Init.DMAContinuousRequests = DISABLE;
   if (HAL_ADC_Init(&hadc) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(2);
   }
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
@@ -35,7 +35,7 @@ void MX_ADC_Init(void)
   sConfig.SamplingTime = ADC_SAMPLETIME_4CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
-    Error_Handler();
+    Error_Handler(2);
   }
 
 }

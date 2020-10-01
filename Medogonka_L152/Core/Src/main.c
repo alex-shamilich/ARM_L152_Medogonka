@@ -2,7 +2,7 @@
 // File Name          : main.c
 // Description        : Main program body
 //======================================================================================
-#define FIRMWARE_VER "0.0.1"
+#define FIRMWARE_VER "0.0.2"
 //======================================================================================
 // Контроллер двигателя медогонки
 //
@@ -17,10 +17,15 @@
 //
 // Переферия подключенная:
 //		LCD Color 480х320 ILI9488  (SPI2)
-//
+//		Баззер - динамик
+//		LED_GREEN - отладочный светодиод
+// 		LED_LIGHT - управление подсветкой бака
+//		Кнопки: СТАРТ, СТОП, МОТОР, Переключатель направления мотора
+//		Вход датчика оборотов бака
+//		UART2:	Virtual COM-Port для printf
 
 // I2C1 - подключение датчиков (MPU-6050,
-// SPI1 - SD Карта
+// SPI1 - SD Card
 // SPI2 - LCD экран ILI9488
 // UART порты:
 // 		UART1:
@@ -33,7 +38,7 @@
 //		TIM3	обслуживание энкодера для меню
 //		TIM4	магнитный датчик оборотов бака
 //		TIM5	отключен
-//		TIM6	отключен
+//		TIM6	динамик
 //		TIM7	источник тиков для FreeRTOS
 //		TIM9	отключен
 //		TIM10	отключен
@@ -44,9 +49,9 @@
 #include "main.h"
 
 #include "cmsis_os.h"
-#include "adc.h"
-#include "dac.h"
-#include "dma.h"
+#include <ADC.h>
+#include <DAC.h>
+#include <DMA.h>
 #include "fatfs.h"
 #include "i2c.h"
 #include "spi.h"
@@ -63,45 +68,68 @@ void MX_FREERTOS_Init(void);
 //======================================================================================
 int main(void)
 {
-	HAL_Init();
-	SystemClock_Config();
+	HAL_Init();																			// Настройка HAL
+	SystemClock_Config();																// Настройка системы тактирования
 
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_SPI1_Init();
-	MX_SPI2_Init();
-	MX_I2C1_Init();
-	MX_USART1_UART_Init();
-	MX_DAC_Init();
-	MX_FATFS_Init();
-	MX_ADC_Init();
-	MX_TIM3_Init();
-	MX_TIM4_Init();
-	MX_TIM11_Init();
-	MX_UART4_Init();
-	MX_UART5_Init();
-	MX_USART2_UART_Init();
-	MX_USART3_UART_Init();
+	MX_GPIO_Init();																		// Настройка пинов GPIO, не привязанных к блокам SPI, UART, I2C, keys, encoder, ADC, DAC
+	MX_DMA_Init();																		// Настройка DMA
+	MX_SPI1_Init();																		// Настройка SPI1 для работы с SD картой
+	MX_SPI2_Init();																		// Настройка SPI2 для работы с LCD экраном ILI9488
+	MX_I2C1_Init();																		// Настройка I2C для работы с IMU
+
+	MX_USART1_UART_Init();																// Настройка USART1
+	MX_USART2_UART_Init();																// Настройка USART2 для Virtual COM-Port
+	MX_USART3_UART_Init();																// Настройка USART3
+	MX_UART4_Init();																	// Настройка UART4 терминальной связи с ПК
+	MX_UART5_Init();																	// Настройка UART5
+
+	MX_DAC_Init();																		// Настройка ЦАП для управления скоростью мотора
+	MX_ADC_Init();																		// Настройка АЦП для измерения токов, напряжений, регулятора скорости
+	MX_TIM3_Init();																		// Настройка для работы энкодера
+	MX_TIM6_Init();																		// Настройка для работы динамика
+	MX_TIM4_Init();																		// Настройка для работы тахометра оборотов бака
+	MX_TIM11_Init();																	// Настройка для ШИМ управления оборотами мотора вентилятора охлаждения контроллера двигателя
+
+	MX_FATFS_Init();																	// Настройка для работы с файлами на SD Card
+
+	Keys_Init();																		// Настройка GPIO портов для кнопок
+	Encoder_Init();																		// Настройка GPIO портов для энкодера
+	BUZZER_Init(BUZZER_STSTE_ON);														// Инициализация и включение пъезодинамика (пищалки/баззера)
 
   //  // фейковый трансмит для настройки SPI
   //  uint8_t data = 0;
   //  HAL_SPI_Transmit(&LCD_SPI, &data, 1, 10);
 
 	HAL_Delay(100);
-	LCD9488_Init();	   // Инициализаци экрана
+	LCD9488_Init();	   																	// Инициализаци экрана LCD ILI9488
 	HAL_Delay(100);
 
-	LCD9488_GUI_SetOrientation(1);
+	LCD9488_GUI_SetOrientation(1);														// Установка ориентации экрана
 	HAL_Delay(100);
+
+
+	BUZZER_Beep();
+
+
+	// Рисуем начальную заставку на UART2
+	printf("\033[2J"); 																	// Очистка окна терминала.   //https://www.linux.org.ru/forum/development/628620
+	printf("\033[0;0H"); 																// задает абсолютные координаты курсора (строка, столбец)  // https://www.opennet.ru/base/dev/console_ctl.txt.html
+	printf("Medogonka. Alex Shamilich\n");												// Строка приветствия
+	printf("Version: %s\n", FIRMWARE_VER);
+	printf("  Date: %s\n", __DATE__);
+	printf("  Time: %s\n", __TIME__);
+	printf("FreeRTOS.   \n");															// Строка приветствия
+
 
 	main_test();																		// Тесты LCD
 
-	osKernelInitialize();  																// Init scheduler  Call init function for freertos objects (in freertos.c)
-	MX_FREERTOS_Init();
-	osKernelStart();																	// Start scheduler
+	osKernelInitialize();  																// Настройка планировщика FreeRTOS
+	MX_FREERTOS_Init();																	// Настройка объектов FreeRTOS
+	osKernelStart();																	// Запуск планировщика FreeRTOS
 
-	/* We should never get here as control is now taken by the scheduler */
-	/* Infinite loop */
+
+
+	// После старта планировщика сюда мы никогда не должны зайти, поэтому бесконечный цикл.
 	while (1)
 	{
 	}
@@ -128,7 +156,7 @@ void SystemClock_Config(void)															// System Clock Configuration
 	RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV3;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
 	{
-	Error_Handler();
+	Error_Handler(0);
 	}
 	/** Initializes the CPU, AHB and APB buses clocks
 	*/
@@ -141,7 +169,7 @@ void SystemClock_Config(void)															// System Clock Configuration
 
 	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
 	{
-	Error_Handler();
+	Error_Handler(0);
 	}
 	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_16);
 }
@@ -160,14 +188,38 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     HAL_IncTick();
   }
+  if (htim->Instance == TIM6)
+  {
+	BUZZER_INV;																			// меняем состояние пина баззера
+  }
+
 }
 //======================================================================================
-void Error_Handler(void)																// This function is executed in case of error occurrence.
+void Delay_for_errror(uint32_t ms) 														// должна работать вне зависимости от прерываний. Когда все рухнуло и нужно диодом показать код ошибки
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-
-  /* USER CODE END Error_Handler_Debug */
+    volatile uint32_t 	nCount;
+    nCount = SystemCoreClock / 10000 * ms;
+    for (; nCount!=0; nCount--);
+}
+//=======================================================================================
+void Error_Handler(uint8_t err_num)														// Обработчик ошибок
+{
+  //gl_err_num = err_num;
+  while(1)
+  {
+	LED_GREEN_SET;
+	Delay_for_errror(500);
+	LED_GREEN_RESET;
+    Delay_for_errror(500);
+    for(uint8_t i=0; i < err_num; ++i)
+    {
+    	LED_GREEN_SET;
+    	Delay_for_errror(130);
+    	LED_GREEN_RESET;
+        Delay_for_errror(130);
+    }
+    Delay_for_errror(1000);
+  }
 }
 //======================================================================================
 #ifdef  USE_FULL_ASSERT

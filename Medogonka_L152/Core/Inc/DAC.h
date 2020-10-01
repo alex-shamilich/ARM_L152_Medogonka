@@ -6,6 +6,11 @@
 
 #include "main.h"
 
+// Выход ЦАП на управление скоростью мотора
+#define DAC1__MOTOR_SPEED_Pin 			GPIO_PIN_4
+#define DAC1__MOTOR_SPEED_GPIO_Port 	GPIOA
+
+
 extern DAC_HandleTypeDef hdac;
 
 void MX_DAC_Init(void);
