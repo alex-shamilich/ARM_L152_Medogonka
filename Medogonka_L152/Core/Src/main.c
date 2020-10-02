@@ -118,7 +118,7 @@ int main(void)
 	printf("Version: %s\n", FIRMWARE_VER);
 	printf("  Date: %s\n", __DATE__);
 	printf("  Time: %s\n", __TIME__);
-	printf("FreeRTOS.   \n");															// Строка приветствия
+	printf("FreeRTOS. USART2->Virtual_COM  \n");															// Строка приветствия
 
 
 	main_test();																		// Тесты LCD

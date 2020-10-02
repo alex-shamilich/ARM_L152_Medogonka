@@ -122,11 +122,12 @@ void StartTask_LCD(void *argument)														// implementing the myTask_LCD t
   }
 }
 //======================================================================================
-void StartTask_ADC(void *argument)														// implementing the myTask_ADC thread.
+void StartTask_ADC(void *argument)														// Поток для сканирования АЦП (Напряжения питания и мотора, Тока питания и мотора, положения регулятора скорости)
 {
   for(;;)
   {
-    osDelay(1);
+	ADC_ScanState();																	// Замер из АЦП по всем каналам сразу
+    osDelay(1000);
   }
 }
 //======================================================================================

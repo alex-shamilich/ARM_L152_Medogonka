@@ -12,6 +12,7 @@ extern "C" {
 #include "stm32l1xx_hal.h"
 #include "stm32l1xx_hal.h"
 
+#include "adc.h"
 #include "gpio.h"
 #include "keys.h"
 #include "Encoder.h"
