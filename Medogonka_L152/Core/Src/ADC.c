@@ -1,4 +1,6 @@
 #include <ADC.h>
+#include "ADC_Ext.h"
+
 
 ADC_HandleTypeDef hadc;
 
@@ -159,9 +161,9 @@ void ADC_ScanState(void)																// Замер из АЦП по всем 
 		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, без учета реального напряжения питания
 		ADC_State.CPU_Temperature 	= COMPUTATION_TEMPERATURE_TEMP30_TEMP110(ADC_State.ADC_RAW) - 2;
 
-//		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
-//		ADC_State.CPU_Temperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
-//		ADC_State.CPU_Temperature = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), (ADC_State.ADC_RAW + 24), hadc.Init.Resolution);
+		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
+		ADC_State.CPU_Temperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
+		ADC_State.CPU_TemperatureRef    = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), ADC_State.ADC_RAW , hadc.Init.Resolution) - 2;
 
 		ADC_State.DataReady++;
 	}

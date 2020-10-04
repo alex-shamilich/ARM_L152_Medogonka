@@ -133,6 +133,9 @@ void StartTask_LCD(void *argument)														// implementing the myTask_LCD t
 	sprintf(str, "%+2.1fC", ADC_State.CPU_Temperature);
 	LCD9488_GUI_Draw_StringColor(10, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
 
+	sprintf(str, "%+2.1fC", ADC_State.CPU_TemperatureRef);
+	LCD9488_GUI_Draw_StringColor(10, 60, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
+
 	sprintf(str, "%3.3fv", ADC_State.ADC_Ref_Voltage);
 	LCD9488_GUI_Draw_StringColor(200, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
 
