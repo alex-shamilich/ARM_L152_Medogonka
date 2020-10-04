@@ -1,6 +1,6 @@
 #include <DAC.h>
 
-DAC_HandleTypeDef hdac;
+DAC_HandleTypeDef DacHandle;
 
 //======================================================================================
 void MX_DAC_Init(void)
@@ -9,8 +9,8 @@ void MX_DAC_Init(void)
 
   /** DAC Initialization
   */
-  hdac.Instance = DAC;
-  if (HAL_DAC_Init(&hdac) != HAL_OK)
+  DacHandle.Instance = DAC;
+  if (HAL_DAC_Init(&DacHandle) != HAL_OK)
   {
     Error_Handler(3);
   }
@@ -18,7 +18,7 @@ void MX_DAC_Init(void)
   */
   sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-  if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  if (HAL_DAC_ConfigChannel(&DacHandle, &sConfig, DACx_CHANNEL) != HAL_OK)
   {
     Error_Handler(3);
   }
@@ -59,5 +59,19 @@ void HAL_DAC_MspDeInit(DAC_HandleTypeDef* dacHandle)
     */
     HAL_GPIO_DeInit(DAC1__MOTOR_SPEED_GPIO_Port, DAC1__MOTOR_SPEED_Pin);
   }
+}
+//======================================================================================
+void DAC_SetValue(uint8_t AValue)														// Установка значения в ЦАП
+{
+	if (HAL_DAC_SetValue(&DacHandle, DACx_CHANNEL, DAC_ALIGN_8B_R, (uint32_t)AValue) != HAL_OK)
+	{
+	  Error_Handler(21);//Setting value Error
+	}
+
+	if (HAL_DAC_Start(&DacHandle, DACx_CHANNEL) != HAL_OK)
+	{
+	  Error_Handler(21);//Start Error
+	}
+
 }
 //======================================================================================

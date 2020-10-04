@@ -7,8 +7,6 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-#include "stdio.h"
-#include "LCD_ili9488_fonts.h"
 
 //#include "LCD_ili9488.h"
 //#include "LCD_ili9488_fonts.h"
@@ -49,6 +47,13 @@ const osThreadAttr_t myTask_ScanCTRL_attributes = {
   .stack_size = 128 * 4
 };
 //======================================================================================
+osThreadId_t myTask_SetStateHandle;
+const osThreadAttr_t myTask_SetState_attributes = {
+  .name = "myTask_SetState",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+//======================================================================================
 osMessageQueueId_t myQueue_UART_RxHandle;
 uint8_t myQueue_UART_RxBuffer[ 32 * sizeof( uint8_t ) ];
 osStaticMessageQDef_t myQueue_UART_RxControlBlock;
@@ -72,6 +77,7 @@ void StartTask_IMU(void *argument);
 void StartTask_LCD(void *argument);
 void StartTask_ADC(void *argument);
 void StartTask_ScanControls(void *argument);
+void StartTask_SetState(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -91,6 +97,7 @@ void MX_FREERTOS_Init(void)																// FreeRTOS initialization
   myTask_LCDHandle 			= osThreadNew(StartTask_LCD, NULL, &myTask_LCD_attributes);
   myTask_ADCHandle 			= osThreadNew(StartTask_ADC, NULL, &myTask_ADC_attributes);
   myTask_ScanCTRLHandle 	= osThreadNew(StartTask_ScanControls, NULL, &myTask_ScanCTRL_attributes);
+  myTask_SetStateHandle 	= osThreadNew(StartTask_SetState, NULL, &myTask_SetState_attributes);
 }
 //======================================================================================
 void StartDefaultTask(void *argument)													// implementing the defaultTask thread.
@@ -120,24 +127,13 @@ void StartTask_IMU(void *argument)														// implementing the myTask_IMU t
 //======================================================================================
 void StartTask_LCD(void *argument)														// implementing the myTask_LCD thread.
 {
-  char str[18];
 
   for(;;)
   {
-	sprintf(str, "%04.3f", ADC_State.Speed_value_volts);
-	LCD9488_GUI_Draw_StringColor(10, 230, str, (unsigned char*)LCD55Mono37x48, RED, CYAN, DRAW_NO_OVERLYING);
+	Display_Test(0,0);
+	Display_MotorDirection(250, 50, MotorDirection);									// Показать направление вращения мотора
 
-	sprintf(str, "%03d", ADC_State.Speed_value_percent);
-	LCD9488_GUI_Draw_StringColor(200, 230, str, (unsigned char*)Digital7Mono32x48, RED, CYAN, DRAW_NO_OVERLYING);
-
-	sprintf(str, "%+2.1fC", ADC_State.CPU_Temperature);
-	LCD9488_GUI_Draw_StringColor(10, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
-
-	sprintf(str, "%+2.1fC", ADC_State.CPU_TemperatureRef);
-	LCD9488_GUI_Draw_StringColor(10, 60, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
-
-	sprintf(str, "%3.3fv", ADC_State.ADC_Ref_Voltage);
-	LCD9488_GUI_Draw_StringColor(200, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
+	Display_SystemVoltage(100, 5);
 
 	LED_GREEN_INV;
 
@@ -147,6 +143,7 @@ void StartTask_LCD(void *argument)														// implementing the myTask_LCD t
 //======================================================================================
 void StartTask_ADC(void *argument)														// Поток для сканирования АЦП (Напряжения питания и мотора, Тока питания и мотора, положения регулятора скорости)
 {
+
   for(;;)
   {
 	ADC_ScanState();																	// Замер из АЦП по всем каналам сразу
@@ -156,42 +153,38 @@ void StartTask_ADC(void *argument)														// Поток для скани�
 //======================================================================================
 void StartTask_ScanControls(void *argument)												// implementing the myTask_ScanCTRL thread.
 {
+
   for(;;)
   {
-	// Выбор направления движения мотора
-	if (HAL_GPIO_ReadPin(BTN_FWD_GPIO_Port,  BTN_FWD_Pin) == GPIO_PIN_RESET)
-		MOTOR_FWD_SET;
-	else
-		MOTOR_FWD_RESET;
-
-	if (HAL_GPIO_ReadPin(BTN_BWD_GPIO_Port,  BTN_BWD_Pin) == GPIO_PIN_RESET)
-		MOTOR_BWD_SET;
-	else
-		MOTOR_BWD_RESET;
+	Motor_Scan_DirectionState(); 														// Сканирование переключателя направления движения мотора
 
 
+	// Мигаем подсветкой согласно датчику вращения todo: временно
 	if (HAL_GPIO_ReadPin(SNS_HALL_IN_GPIO_Port,  SNS_HALL_IN_Pin) == GPIO_PIN_RESET)
 		LED_LIGHT_RESET;
 	else
 		LED_LIGHT_SET;
 
 
-//	if (HAL_GPIO_ReadPin(ENC_BTN_GPIO_Port,  ENC_BTN_Pin) == GPIO_PIN_SET)
-//		LED_GREEN_RESET;
-//	else
-//		LED_GREEN_SET;
-//	if (HAL_GPIO_ReadPin(ENC_A_GPIO_Port,  ENC_A_Pin) == GPIO_PIN_RESET)
-//		LED_GREEN_RESET;
-//	else
-//		LED_GREEN_SET;
-//
-//	if (HAL_GPIO_ReadPin(ENC_B_GPIO_Port,  ENC_B_Pin) == GPIO_PIN_RESET)
-//		LED_GREEN_RESET;
-//	else
-//		LED_GREEN_SET;
+
+    osDelay(10);
+  }
+}
+//======================================================================================
+void StartTask_SetState(void *argument)													// implementing the myTask_SetState thread.
+{
+  for(;;)
+  {
+
+	Motor_Set_DirectionState(MotorDirection);											// Установить направление мотора
+
+	DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)2.55));					// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V]
+
+	// установить скорость вентилятора охлаждения (ШИМ)
 
 
-    osDelay(1);
+
+    osDelay(20);
   }
 }
 //======================================================================================

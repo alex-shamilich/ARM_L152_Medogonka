@@ -161,9 +161,9 @@ void ADC_ScanState(void)																// Замер из АЦП по всем 
 		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, без учета реального напряжения питания
 		ADC_State.CPU_Temperature 	= COMPUTATION_TEMPERATURE_TEMP30_TEMP110(ADC_State.ADC_RAW) - 2;
 
-		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
-		ADC_State.CPU_Temperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
-		ADC_State.CPU_TemperatureRef    = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), ADC_State.ADC_RAW , hadc.Init.Resolution) - 2;
+//		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
+//		ADC_State.CPU_Temperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
+//		ADC_State.CPU_TemperatureRef    = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), ADC_State.ADC_RAW , hadc.Init.Resolution) - 2;
 
 		ADC_State.DataReady++;
 	}
@@ -173,6 +173,7 @@ void ADC_ScanState(void)																// Замер из АЦП по всем 
 	{
 		ADC_State.Speed_value_volts 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_SPEED;
 		ADC_State.Speed_value_percent	= (uint8_t)( (ADC_State.Speed_value_volts/ADC_REF_VOLTAGE_DEFAULT)*(double)100 );
+		Speed_value_percent = ADC_State.Speed_value_percent;
 
 		ADC_State.DataReady++;
 	}
