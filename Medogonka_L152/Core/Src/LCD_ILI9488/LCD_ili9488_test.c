@@ -1,6 +1,6 @@
 #include "main.h"
 
-#include "LCD_ili9488_fonts.h"
+
 #include "LCD_ili9488_pic.h"
 
 

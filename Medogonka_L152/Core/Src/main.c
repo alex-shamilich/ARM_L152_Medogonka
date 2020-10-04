@@ -23,6 +23,7 @@
 //		Кнопки: СТАРТ, СТОП, МОТОР, Переключатель направления мотора
 //		Вход датчика оборотов бака
 //		UART2:	Virtual COM-Port для printf
+// 		настроен АЦП для получения токов, напряжений, температуры процессора
 
 // I2C1 - подключение датчиков (MPU-6050,
 // SPI1 - SD Card
@@ -118,10 +119,10 @@ int main(void)
 	printf("Version: %s\n", FIRMWARE_VER);
 	printf("  Date: %s\n", __DATE__);
 	printf("  Time: %s\n", __TIME__);
-	printf("FreeRTOS. USART2->Virtual_COM  \n");															// Строка приветствия
+	printf("FreeRTOS. USART2->Virtual_COM, ADC,  \n");															// Строка приветствия
 
 
-	main_test();																		// Тесты LCD
+//	main_test();																		// Тесты LCD
 
 	osKernelInitialize();  																// Настройка планировщика FreeRTOS
 	MX_FREERTOS_Init();																	// Настройка объектов FreeRTOS

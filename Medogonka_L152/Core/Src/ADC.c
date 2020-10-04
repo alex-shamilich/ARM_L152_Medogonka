@@ -109,8 +109,27 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   }
 }
 //======================================================================================
-//const double MP_Battery_Levels[6] = {3.72, 3.79, 3.88, 3.91, 4.01, 4.15};				// Уровни АЦП для прорисовки батарей
-const double MP_Battery_Levels[6] = {2.6, 2.9, 3.2, 3.5, 4.00, 4.15};				// Уровни АЦП для прорисовки батарей //todo: тестово, чтобы всю шкалу резистором перекрутить!
+uint32_t ADC_GetRAWData(uint32_t Channel)												// Получить сырые данные для обрботки по указанному каналу
+{
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	sConfig.Rank         = ADC_REGULAR_RANK_1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_16CYCLES;
+
+	sConfig.Channel      = Channel;
+ 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
+		Error_Handler(2);
+	}
+
+	// Замер из АЦП
+	HAL_ADC_Start(&hadc);
+	HAL_ADC_PollForConversion(&hadc, 10);
+	ADC_State.ADC_RAW = HAL_ADC_GetValue(&hadc);
+	HAL_ADC_Stop(&hadc);
+
+	return ADC_State.ADC_RAW;
+}
 //======================================================================================
 void ADC_ScanState(void)																// Замер из АЦП по всем каналам сразу
 {
@@ -123,144 +142,70 @@ void ADC_ScanState(void)																// Замер из АЦП по всем 
 	// ADC Channel: Temperature Sensor Channel 	- температура кристалла процессора
 	// ADC Channel: Vrefint Channel				- Напряжение питания, для рассчетов опоры
 
-	ADC_ChannelConfTypeDef sConfig = {0};
+	ADC_State.DataReady = 0;
 
-// из ЛДН	(STM32L152)
-	Battery_State.DataReady = 0;
 
-	sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
-	sConfig.SamplingTime = ADC_SAMPLETIME_4CYCLES;
-
-	// Замер из АЦП Vref для определения напряжения питания
-	sConfig.Channel      = CHANNEL_ADC_SPEED;      	// Канал АЦП - регулятор скорости мотора (пременный резистор 0..3.3V)
- 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	ADC_GetRAWData(ADC_CHANNEL_VREFINT);												// Канал АЦП - опорное напряжение для рассчета напряжения питания процессора
+	if (ADC_State.ADC_RAW < 4096)
 	{
-		Error_Handler(10);
+		// Реальное напряжение питания процессора, точнее питание аналоговой части
+		ADC_State.ADC_Ref_Voltage = __LL_ADC_CALC_VREFANALOG_VOLTAGE(ADC_State.ADC_RAW, hadc.Init.Resolution) / 1000.0; // калибровка батареи - опорное напряжение АЦП
+		ADC_State.DataReady++;
 	}
 
-
-	// Замер из АЦП
-	HAL_ADC_Start(&hadc);
-	HAL_ADC_PollForConversion(&hadc, 100);
-
-	Battery_State.ADC_RAW = HAL_ADC_GetValue(&hadc);
-
-	HAL_ADC_Stop(&hadc);
-
-	// Обработка значений
-	if (Battery_State.ADC_RAW < 4096)
+	ADC_GetRAWData(ADC_CHANNEL_TEMPSENSOR);												// Канал АЦП - температура внутри процессора
+	if (ADC_State.ADC_RAW < 4096)
 	{
+		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, без учета реального напряжения питания
+		ADC_State.CPU_Temperature 	= COMPUTATION_TEMPERATURE_TEMP30_TEMP110(ADC_State.ADC_RAW) - 2;
 
-		Battery_State.battery_raw_volts 	= Battery_State.ADC_RAW * (Battery_State.ADC_Ref_Voltage / 4096);
-		Battery_State.battery_cell_volts 	= (Battery_State.ADC_12V_Voltage * Battery_State.battery_raw_volts ) / 4;			// напряжение в пересчете на 1 банку
-		Battery_State.battery_level 		= 0;
+//		// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
+//		ADC_State.CPU_Temperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
+//		ADC_State.CPU_Temperature = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), (ADC_State.ADC_RAW + 24), hadc.Init.Resolution);
 
-		for (uint8_t i=0; i<6; i++)
-		{
-			if (Battery_State.battery_cell_volts > MP_Battery_Levels[i])
-			{
-				Battery_State.battery_level++;
-			}
-		}
-//		Voltage = (double)((double)Volt * 0.00325 + 0.34);	// аппроксимация для 2х литиевых батарей
-
-		Battery_State.DataReady = 1;
+		ADC_State.DataReady++;
 	}
 
+	ADC_GetRAWData(CHANNEL_ADC_SPEED);													// Канал АЦП - регулятор скорости мотора (пременный резистор 0..3.3V)
+	if (ADC_State.ADC_RAW < 4096)
+	{
+		ADC_State.Speed_value_volts 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_SPEED;
+		ADC_State.Speed_value_percent	= (uint8_t)( (ADC_State.Speed_value_volts/ADC_REF_VOLTAGE_DEFAULT)*(double)100 );
 
+		ADC_State.DataReady++;
+	}
 
+	ADC_GetRAWData(CHANNEL_ADC_V_IN_12V);												// Канал АЦП - напряжение питания на входе
+	if (ADC_State.ADC_RAW < 4096)
+	{
+		ADC_State.V_IN_12V_value_volts 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_V_IN_12V;
 
+		ADC_State.DataReady++;
+	}
 
+	ADC_GetRAWData(CHANNEL_ADC_V_MOTOR);												// Канал АЦП - напряжение питания мотора (среднее)
+	if (ADC_State.ADC_RAW < 4096)
+	{
+		ADC_State.V_IN_MOTOR_value_volts 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_V_MOTOR;
 
+		ADC_State.DataReady++;
+	}
 
+	ADC_GetRAWData(CHANNEL_ADC_I_IN_12V);												// Канал АЦП - общий входной ток
+	if (ADC_State.ADC_RAW < 4096)
+	{
+		ADC_State.I_IN_12V_value_amperes 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_I_IN_12V;
 
-//	// из LRF (STM32L432)
-//
-////	ADC_ChannelConfTypeDef sConfig = {0};
-//	ADC_State.DataReady = 0;
-//	uint16_t ADC_RAW;
-//
-////	DBG_PIN_LED_GREEN_SET;
-//
-//	sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
-//	sConfig.SamplingTime = ADC_SAMPLETIME_4CYCLES;
-//
-//	// Замер из АЦП Vref для определения напряжения питания
-//	sConfig.Channel      = ADC_CHANNEL_VREFINT;      	// Канал АЦП - источник опорного напряжения
-// 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		Error_Handler(10);
-//	}
-//	HAL_ADC_Start(&hadc);
-//	HAL_ADC_PollForConversion(&hadc, 10);
-//	ADC_RAW = HAL_ADC_GetValue(&hadc);
-//	HAL_ADC_Stop(&hadc);
-//
-//	// Реальное напряжение питания процессора, точнее питание аналоговой части
-//	ADC_State.ADC_Ref_Voltage = __LL_ADC_CALC_VREFANALOG_VOLTAGE(ADC_RAW, hadc.Init.Resolution) / 1000.0; // калибровка батареи - опорное напряжение АЦП
-//
-//
-//
-//	// Анализ напряжения на батарее
-//	ADC_State.LOW_BATT		  = 0;									// Статус зизкого заряда АКБ перед выключением (1=напряжение ниже порога работы, 0=норма)
-//
-//	// Замер из АЦП для батареи
-//	sConfig.Channel      = ADC_CHANNEL_6;               	// Канал АЦП - аналоговый вход АЦП (ADIN1)
-//	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		Error_Handler(10);
-//	}
-//	HAL_ADC_Start(&hadc);
-//	HAL_ADC_PollForConversion(&hadc, 10);
-//	ADC_State.ADC_RAW = HAL_ADC_GetValue(&hadc);
-//	HAL_ADC_Stop(&hadc);
-//
-//	// Обработка значений
-//	if (ADC_State.ADC_RAW < 4096)
-//	{
-//		ADC_State.battery_raw_volts 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_State.ADC_RAW, hadc.Init.Resolution) - 0.030;  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
-//		ADC_State.battery_cell_volts 	= ADC_State.battery_raw_volts * ADC_DIVIDER_RATIO;  // делитель на 2 на входе АЦП от батарейки (USB)
-//		ADC_State.battery_level 		= 0;
-//
-//		for (uint8_t i=0; i<6; i++)
-//		{
-//			if (ADC_State.battery_cell_volts > MP_Battery_Levels[i])
-//			{
-//				ADC_State.battery_level++;
-//			}
-//		}
-//		ADC_State.DataReady = 1;
-//	}
-//
-//	// Статус пониженного напряжения питания для автоотключения системы
-//	if (ADC_State.battery_cell_volts > BATTERY_LOW_THRESHOLD)
-//	{
-//		ADC_State.LOW_BATT = 0;																// нормальный уровень батареи
-//	}
-//	else
-//	{
-//		ADC_State.LOW_BATT = 1;																// пониженный, отключаемся
-//	}
-//
-//
-//	// Температура
-//	sConfig.Channel      = ADC_CHANNEL_TEMPSENSOR;      	// Канал АЦП - термодатчик
-// 	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
-//	{
-//		Error_Handler(10);
-//	}
-//	HAL_ADC_Start(&hadc);
-//	HAL_ADC_PollForConversion(&hadc, 10);
-//	ADC_Temperature_State.ADC_RAW = HAL_ADC_GetValue(&hadc);
-//	HAL_ADC_Stop(&hadc);
-//
-//	// Пересчет  сырых данных АЦП в температуру в градусах Цельсия, с учетом реального опопрного напряжения питания
-//	ADC_Temperature_State.Temperature_DegreeCelsius = __LL_ADC_CALC_TEMPERATURE((uint32_t)(1000*ADC_State.ADC_Ref_Voltage), (ADC_Temperature_State.ADC_RAW + 24), hadc.Init.Resolution);
-//
-//	ADC_Temperature_State.InternalTemperature_raw 	= __LL_ADC_CALC_DATA_TO_VOLTAGE(ADC_State.ADC_Ref_Voltage, ADC_Temperature_State.ADC_RAW, hadc.Init.Resolution);  // пересчет из сырых данных АЦП в напряжение в вольтах с учетом разрядности
-//
-////	DBG_PIN_LED_GREEN_RESET;
+		ADC_State.DataReady++;
+	}
 
+	ADC_GetRAWData(CHANNEL_ADC_I_MOTOR);												// Канал АЦП - ток мотора
+	if (ADC_State.ADC_RAW < 4096)
+	{
+		ADC_State.I_IN_MOTOR_value_amperes 	= ADC_State.ADC_RAW * (ADC_REF_VOLTAGE_DEFAULT / 4096) * DIVIDER_ADC_I_MOTOR;
+
+		ADC_State.DataReady++;
+	}
 
 }
 //=======================================================================================

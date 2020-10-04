@@ -12,6 +12,8 @@
 
 #include "spi.h"
 
+#include "LCD_ili9488_fonts.h"
+
 #define LCD_SPI         		hspi2													// Дескриптор SPI интерфейса
 
 // Пины для управления LCD

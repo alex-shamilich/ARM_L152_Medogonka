@@ -7,7 +7,11 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
+#include "stdio.h"
+#include "LCD_ili9488_fonts.h"
 
+//#include "LCD_ili9488.h"
+//#include "LCD_ili9488_fonts.h"
 //======================================================================================
 typedef StaticQueue_t osStaticMessageQDef_t;
 osThreadId_t defaultTaskHandle;
@@ -116,9 +120,25 @@ void StartTask_IMU(void *argument)														// implementing the myTask_IMU t
 //======================================================================================
 void StartTask_LCD(void *argument)														// implementing the myTask_LCD thread.
 {
+  char str[18];
+
   for(;;)
   {
-    osDelay(1);
+	sprintf(str, "%04.3f", ADC_State.Speed_value_volts);
+	LCD9488_GUI_Draw_StringColor(10, 230, str, (unsigned char*)LCD55Mono37x48, RED, CYAN, DRAW_NO_OVERLYING);
+
+	sprintf(str, "%03d", ADC_State.Speed_value_percent);
+	LCD9488_GUI_Draw_StringColor(200, 230, str, (unsigned char*)Digital7Mono32x48, RED, CYAN, DRAW_NO_OVERLYING);
+
+	sprintf(str, "%+2.1fC", ADC_State.CPU_Temperature);
+	LCD9488_GUI_Draw_StringColor(10, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
+
+	sprintf(str, "%3.3fv", ADC_State.ADC_Ref_Voltage);
+	LCD9488_GUI_Draw_StringColor(200, 10, str, (unsigned char*)Arial28x28, RED, CYAN, DRAW_NO_OVERLYING);
+
+	LED_GREEN_INV;
+
+    osDelay(100);
   }
 }
 //======================================================================================
@@ -127,7 +147,7 @@ void StartTask_ADC(void *argument)														// Поток для скани�
   for(;;)
   {
 	ADC_ScanState();																	// Замер из АЦП по всем каналам сразу
-    osDelay(1000);
+    osDelay(50);
   }
 }
 //======================================================================================
