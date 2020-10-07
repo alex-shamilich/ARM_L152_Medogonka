@@ -20,6 +20,9 @@
 #define LED_LIGHT_RESET 			HAL_GPIO_WritePin(LED_LIGHT_GPIO_Port,  LED_LIGHT_Pin, GPIO_PIN_RESET)
 #define LED_LIGHT_INV 				HAL_GPIO_TogglePin(LED_LIGHT_GPIO_Port, LED_LIGHT_Pin)
 
+// Выход на ШИМ управление двигателя охлаждения контроллера мотора
+ #define PWM_COOLING_Pin 			GPIO_PIN_1
+ #define PWM_COOLING_GPIO_Port 		GPIOE
 
 // Выход выбора направления движения мотора ВПЕРЕД
 #define MOTOR_FWD_Pin 				GPIO_PIN_6
@@ -85,9 +88,7 @@
 #define MCO_Pin 					GPIO_PIN_8
 #define MCO_GPIO_Port 				GPIOA
 
-// Выход на ШИМ управление двигателя охлаждения контроллера мотора
-#define PWM_COOLING_Pin 			GPIO_PIN_1
-#define PWM_COOLING_GPIO_Port 		GPIOE
+
 
 
 

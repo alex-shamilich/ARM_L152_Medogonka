@@ -178,9 +178,11 @@ void StartTask_SetState(void *argument)													// implementing the myTask_S
 
 	Motor_Set_DirectionState(MotorDirection);											// Установить направление мотора
 
-	DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)2.55));					// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V]
+	//DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)2.55));				// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V]
+	DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)1.58));					// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V] (1.58 - коэф чтобы получить на выходе 0..5V после ЦАП+ОУ)
 
-	// установить скорость вентилятора охлаждения (ШИМ)
+
+	FAN_Set_Speed(Speed_value_percent);													// Установить скорость мотора вентилятора охлаждения (ШИМ)
 
 
 
