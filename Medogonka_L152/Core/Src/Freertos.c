@@ -82,6 +82,32 @@ void StartTask_SetState(void *argument);
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+
+extern TIM_HandleTypeDef htim9;
+
+
+/* Hook prototypes */
+void configureTimerForRunTimeStats(void);
+unsigned long getRunTimeCounterValue(void);
+
+/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
+//__weak void configureTimerForRunTimeStats(void)
+void configureTimerForRunTimeStats(void)
+{
+	HAL_TIM_Base_Start(&htim9);
+}
+
+//__weak unsigned long getRunTimeCounterValue(void)
+unsigned long getRunTimeCounterValue(void)
+{
+    static unsigned long counter = 0;
+
+     counter += __HAL_TIM_GET_COUNTER(&htim9);
+     __HAL_TIM_SET_COUNTER(&htim9, 0);
+
+     return counter;
+}
+
 //======================================================================================
 void MX_FREERTOS_Init(void)																// FreeRTOS initialization
 {
@@ -131,13 +157,14 @@ void StartTask_LCD(void *argument)														// implementing the myTask_LCD t
   for(;;)
   {
 	Display_Test(0,0);
-	Display_MotorDirection(250, 50, MotorDirection);									// Показать направление вращения мотора
+	Display_MotorDirection(50, 50, MotorDirection);										// Показать направление вращения мотора
+	Display_MotorSpeed(250, 50, MotorSpeed);											// Показать скорость вращения мотора
 
 	Display_SystemVoltage(100, 5);
 
 	LED_GREEN_INV;
 
-    osDelay(100);
+    osDelay(200);
   }
 }
 //======================================================================================
@@ -153,17 +180,21 @@ void StartTask_ADC(void *argument)														// Поток для скани�
 //======================================================================================
 void StartTask_ScanControls(void *argument)												// implementing the myTask_ScanCTRL thread.
 {
+  HAL_TIM_Base_Start_IT(&htim4);
+
+  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);												// Запустить TIM4 для анализа оборотов бака
 
   for(;;)
   {
 	Motor_Scan_DirectionState(); 														// Сканирование переключателя направления движения мотора
 
 
-	// Мигаем подсветкой согласно датчику вращения todo: временно
-	if (HAL_GPIO_ReadPin(SNS_HALL_IN_GPIO_Port,  SNS_HALL_IN_Pin) == GPIO_PIN_RESET)
-		LED_LIGHT_RESET;
-	else
-		LED_LIGHT_SET;
+
+//	// Мигаем подсветкой согласно датчику вращения todo: временно
+//	if (HAL_GPIO_ReadPin(SNS_HALL_IN_GPIO_Port,  SNS_HALL_IN_Pin) == GPIO_PIN_RESET)
+//		LED_LIGHT_RESET;
+//	else
+//		LED_LIGHT_SET;
 
 
 
@@ -180,6 +211,8 @@ void StartTask_SetState(void *argument)													// implementing the myTask_S
 
 	//DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)2.55));				// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V]
 	DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)1.58));					// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V] (1.58 - коэф чтобы получить на выходе 0..5V после ЦАП+ОУ)
+
+	MotorSpeed = ((MotorSpeed_Period > 0) ? (60000/MotorSpeed_Period) : (0) );			// Пересчет периода оборотов мотора от датчика Холла в скорость (стелано на таймере-4)
 
 
 	FAN_Set_Speed(Speed_value_percent);													// Установить скорость мотора вентилятора охлаждения (ШИМ)

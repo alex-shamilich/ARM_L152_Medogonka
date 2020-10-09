@@ -119,6 +119,11 @@ void TIM3_IRQHandler(void)																// TIM3 global interrupt.
   HAL_TIM_IRQHandler(&htim3);
 }
 //======================================================================================
+void TIM4_IRQHandler(void)																// TIM4 global interrupt.
+{
+  HAL_TIM_IRQHandler(&htim4);
+}
+//======================================================================================
 void TIM6_IRQHandler(void)																// TIM6 global interrupt.
 {
   HAL_TIM_IRQHandler(&htim6);

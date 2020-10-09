@@ -48,4 +48,13 @@ void Display_MotorDirection(uint16_t pos_x, uint16_t pos_y, TMotorDirection AMot
 
 }
 //======================================================================================
+void Display_MotorSpeed(uint16_t pos_x, uint16_t pos_y, uint16_t ASpeed) 					// Показать скорость вращения мотора
+{
+	unsigned char* Font = (unsigned char*)Unispace32x48_Digits;
+
+	sprintf(str, "%04d", (uint16_t)ASpeed);
+	LCD9488_GUI_Draw_StringColor(pos_x, pos_y, str, Font, BLUE, WHITE, DRAW_NO_OVERLYING);
+}
+//======================================================================================
+
 

@@ -27,6 +27,7 @@ void UART4_IRQHandler(void);
 void UART5_IRQHandler(void);
 
 void TIM3_IRQHandler(void);
+void TIM4_IRQHandler(void);
 void TIM6_IRQHandler(void);
 void TIM7_IRQHandler(void);
 //======================================================================================

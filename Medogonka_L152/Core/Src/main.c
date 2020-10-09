@@ -26,6 +26,8 @@
 // 		настроен АЦП для получения токов, напряжений, температуры процессора
 // 		настроен ЦАП для управления скоростью мотора, сканирование переключателя направления мотора и отправвка его состояния в контроллер мотора
 // 		настроен TIM11 - для ШИМ управления оборотами мотора вентилятора охлаждения контроллера двигателя
+//		настроена возможность отладки FreeRTOS (подключен микросекундный таймер на TIM9)
+// 		настроен TIM4 - для ШИМ рассчета оборотов бака (скорости мотора) по датчику Холла (см InputCaptureCallback + PeriodElaspedCallback)
 
 // I2C1 - подключение датчиков (MPU-6050,
 // SPI1 - SD Card
@@ -43,7 +45,7 @@
 //		TIM5	отключен
 //		TIM6	динамик
 //		TIM7	источник тиков для FreeRTOS
-//		TIM9	отключен
+//		TIM9	источник микросекундных тиков (для отладки FreeRTOS)
 //		TIM10	отключен
 //		TIM11	ШИМ управление оборотами мотора вентилятора охлаждения контроллера двигателя
 
@@ -91,6 +93,7 @@ int main(void)
 	MX_TIM3_Init();																		// Настройка для работы энкодера
 	MX_TIM6_Init();																		// Настройка для работы динамика
 	MX_TIM4_Init();																		// Настройка для работы тахометра оборотов бака
+	MX_TIM9_Init();																		// Настройка для отладки FreeRTOS
 	MX_TIM11_Init();																	// Настройка для ШИМ управления оборотами мотора вентилятора охлаждения контроллера двигателя
 
 	MX_FATFS_Init();																	// Настройка для работы с файлами на SD Card
@@ -125,7 +128,8 @@ int main(void)
 	printf("Version: %s\n", FIRMWARE_VER);
 	printf("  Date: %s\n", __DATE__);
 	printf("  Time: %s\n", __TIME__);
-	printf("FreeRTOS. USART2->Virtual_COM, ADC, DAC, \n");															// Строка приветствия
+	printf("FreeRTOS. USART2->Virtual_COM, ADC, DAC\n");								// Строка приветствия
+	printf("TIM4, TIM9, TIM11 \n");														// Строка приветствия
 
 
 //	main_test();																		// Тесты LCD
@@ -191,6 +195,11 @@ void SystemClock_Config(void)															// System Clock Configuration
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+  if (htim->Instance == TIM4)
+  {
+	MotorSpeed_Period 	= 0;															// Если натикало больше чем период таймера (htim4.Init.Period), то считаем скорость мотора нулевой
+  }
+
   if (htim->Instance == TIM7)
   {
     HAL_IncTick();
@@ -199,6 +208,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
 	BUZZER_INV;																			// меняем состояние пина баззера
   }
+
+}
+//======================================================================================
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == TIM4)															// Считаем скорость по интервалу импульсов от датчика скорости
+	{
+		MotorSpeed_Period = __HAL_TIM_GET_COUNTER(&htim4);
+		__HAL_TIM_SET_COUNTER(&htim4, 0);
+	}
 
 }
 //======================================================================================

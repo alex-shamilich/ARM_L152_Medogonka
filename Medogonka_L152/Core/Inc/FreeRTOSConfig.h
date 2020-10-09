@@ -62,13 +62,16 @@
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
 #define configTOTAL_HEAP_SIZE                    ((size_t)10000)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
+#define configGENERATE_RUN_TIME_STATS 1
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0
 #define configUSE_MUTEXES                        1
 #define configQUEUE_REGISTRY_SIZE                8
 #define configUSE_RECURSIVE_MUTEXES              1
 #define configUSE_COUNTING_SEMAPHORES            1
+#define configENABLE_BACKWARD_COMPATIBILITY      1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  0
+#define configRECORD_STACK_HIGH_ADDRESS          1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                    0
@@ -141,6 +144,15 @@ standard names. */
               to prevent overwriting SysTick_Handler defined within STM32Cube HAL */
 
 #define xPortSysTickHandler SysTick_Handler
+
+/* USER CODE BEGIN 2 */
+/* Definitions needed when configGENERATE_RUN_TIME_STATS is on */
+  void configureTimerForRunTimeStats(void);		// объявлены в Freertos.h
+  unsigned long getRunTimeCounterValue(void);	// объявлены в Freertos.h
+
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS configureTimerForRunTimeStats
+#define portGET_RUN_TIME_COUNTER_VALUE getRunTimeCounterValue
+/* USER CODE END 2 */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
