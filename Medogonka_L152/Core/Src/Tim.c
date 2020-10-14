@@ -8,10 +8,11 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim9;
+TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim11;
 
 //======================================================================================
-void MX_TIM3_Init(void)
+void MX_TIM3_Init(void)																	// обслуживание энкодера для меню
 {
   TIM_Encoder_InitTypeDef sConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
@@ -44,7 +45,7 @@ void MX_TIM3_Init(void)
 
 }
 //======================================================================================
-void MX_TIM4_Init(void)
+void MX_TIM4_Init(void)																	// Для рассчета периода сигнала от магнитного датчика оборотов бака (скорость оборотов)
 {
 	  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
 	  TIM_MasterConfigTypeDef sMasterConfig = {0};
@@ -128,7 +129,7 @@ void MX_TIM4_Init(void)
 
 }
 //======================================================================================
-void MX_TIM6_Init(void)
+void MX_TIM6_Init(void)																	// Для генерации звука на динамике (чтобы не хрипел от прерываний и RtOS)
 {
 	// Инициализация в модуле Buzzer_TIM
 
@@ -152,7 +153,7 @@ void MX_TIM6_Init(void)
 //
 }
 //======================================================================================
-void MX_TIM9_Init(void)
+void MX_TIM9_Init(void)																	// источник микросекундных тиков (для отладки FreeRTOS)
 {
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
@@ -181,7 +182,37 @@ void MX_TIM9_Init(void)
 
 }
 //======================================================================================
-void MX_TIM11_Init(void)
+void MX_TIM10_Init(void)																	// источник микросекундных тиков (для DelayUS() )
+{
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 32;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 65535;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler(4);
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim10, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler(4);
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim10, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler(4);
+  }
+
+}
+//======================================================================================
+
+void MX_TIM11_Init(void)																// ШИМ управление оборотами мотора вентилятора охлаждения контроллера двигателя
 {
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
@@ -282,6 +313,11 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
     /* TIM9 clock enable */
     __HAL_RCC_TIM9_CLK_ENABLE();
   }
+  else if(tim_baseHandle->Instance==TIM10)
+  {
+    /* TIM10 clock enable */
+    __HAL_RCC_TIM10_CLK_ENABLE();
+  }
   else if(tim_baseHandle->Instance==TIM11)
   {
     /* TIM11 clock enable */
@@ -365,10 +401,24 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
     /* Peripheral clock disable */
     __HAL_RCC_TIM9_CLK_DISABLE();
   }
+  else if(tim_baseHandle->Instance==TIM10)
+  {
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM10_CLK_DISABLE();
+  }
   else if(tim_baseHandle->Instance==TIM11)
   {
     /* Peripheral clock disable */
     __HAL_RCC_TIM11_CLK_DISABLE();
   }
+}
+//======================================================================================
+void Delay_us(uint16_t us)																// Микросекундные задержки 0 .. 65535 мкс
+{
+	// Таймер TIM10 настроен на тики равные 1 мкс
+    __HAL_TIM_SET_COUNTER(&htim10, 0);													// обнуляем счётчик
+    while(__HAL_TIM_GET_COUNTER(&htim10) <= us)								// ждем пока не натикает до
+    {
+    }
 }
 //======================================================================================

@@ -46,20 +46,6 @@
 #define SNS_HALL_IN_Pin 			GPIO_PIN_6
 #define SNS_HALL_IN_GPIO_Port 		GPIOB
 
-// Вход-выход термодатчика 1-wire. Температура воздуха
-#define TEMP_AIR_1W_Pin 			GPIO_PIN_0
-#define TEMP_AIR_1W_GPIO_Port 		GPIOB
-
-// Вход-выход термодатчика 1-wire. Температура мотора
-#define TEMP_MOTOR_1W_Pin 			GPIO_PIN_1
-#define TEMP_MOTOR_1W_GPIO_Port 	GPIOB
-
-// Вход-выход термодатчика 1-wire. Температура драйвера мотора
-#define TEMP_DRIVER_1W_Pin 			GPIO_PIN_2
-#define TEMP_DRIVER_1W_GPIO_Port 	GPIOB
-
-
-
 // USB порт
 #define USB_DM_Pin 					GPIO_PIN_11
 #define USB_DM_GPIO_Port 			GPIOA

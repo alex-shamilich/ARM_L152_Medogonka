@@ -56,5 +56,13 @@ void Display_MotorSpeed(uint16_t pos_x, uint16_t pos_y, uint16_t ASpeed) 					//
 	LCD9488_GUI_Draw_StringColor(pos_x, pos_y, str, Font, BLUE, WHITE, DRAW_NO_OVERLYING);
 }
 //======================================================================================
+void Display_Temperature(uint16_t pos_x, uint16_t pos_y, uint16_t ATemp) 					// Показать температуру
+{
+	unsigned char* Font = (unsigned char*)Arial28x28;
+
+	sprintf(str, "Temp = %+2d C", DS18B20_Temperature_Integer(ATemp) );
+	LCD9488_GUI_Draw_StringColor(pos_x, pos_y, str, Font, BLUE, WHITE, DRAW_NO_OVERLYING);
+}
+//======================================================================================
 
 

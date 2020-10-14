@@ -23,6 +23,7 @@ extern "C" {
 #include "Buzzer_TIM.h"
 #include "Motor.h"
 #include "Display.h"
+#include "DS18B20.h"
 
 
 // LCD LIL9488:

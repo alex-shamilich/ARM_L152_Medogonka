@@ -31,7 +31,7 @@ void MX_GPIO_Init(void)
                           |LED_GREEN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, TEMP_AIR_1W_Pin|TEMP_MOTOR_1W_Pin|TEMP_DRIVER_1W_Pin|SPI1_SD_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, SPI1_SD_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PEPin PEPin PEPin */
   GPIO_InitStruct.Pin = LED_LIGHT_Pin|MOTOR_FWD_Pin|MOTOR_BWD_Pin;
@@ -48,17 +48,17 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 
-  GPIO_InitStruct.Pin = TEMP_AIR_1W_Pin|TEMP_MOTOR_1W_Pin|TEMP_DRIVER_1W_Pin|SPI1_SD_CS_Pin;
+  GPIO_InitStruct.Pin = SPI1_SD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(SPI1_SD_CS_GPIO_Port, &GPIO_InitStruct);
 
 
   GPIO_InitStruct.Pin = INT_IMU_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(INT_IMU_GPIO_Port, &GPIO_InitStruct);
 
   // Выход тактовой частоты MCO
   GPIO_InitStruct.Pin = MCO_Pin;

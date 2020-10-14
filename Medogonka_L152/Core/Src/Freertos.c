@@ -47,6 +47,13 @@ const osThreadAttr_t myTask_ScanCTRL_attributes = {
   .stack_size = 128 * 4
 };
 //======================================================================================
+osThreadId_t myTask_ScanTempHandle;
+const osThreadAttr_t myTask_ScanTemp_attributes = {
+  .name = "myTask_ScanTemp",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+//======================================================================================
 osThreadId_t myTask_SetStateHandle;
 const osThreadAttr_t myTask_SetState_attributes = {
   .name = "myTask_SetState",
@@ -76,8 +83,10 @@ void StartDefaultTask(void *argument);
 void StartTask_IMU(void *argument);
 void StartTask_LCD(void *argument);
 void StartTask_ADC(void *argument);
+void StartTask_ScanTemperature(void *argument);
 void StartTask_ScanControls(void *argument);
 void StartTask_SetState(void *argument);
+
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -123,15 +132,16 @@ void MX_FREERTOS_Init(void)																// FreeRTOS initialization
   myTask_LCDHandle 			= osThreadNew(StartTask_LCD, NULL, &myTask_LCD_attributes);
   myTask_ADCHandle 			= osThreadNew(StartTask_ADC, NULL, &myTask_ADC_attributes);
   myTask_ScanCTRLHandle 	= osThreadNew(StartTask_ScanControls, NULL, &myTask_ScanCTRL_attributes);
+  myTask_ScanTempHandle 	= osThreadNew(StartTask_ScanTemperature, NULL, &myTask_ScanTemp_attributes);
   myTask_SetStateHandle 	= osThreadNew(StartTask_SetState, NULL, &myTask_SetState_attributes);
 }
 //======================================================================================
-void StartDefaultTask(void *argument)													// implementing the defaultTask thread.
+void StartDefaultTask(void *argument)													// Поток по-умолчанию
 {
 
   MX_USB_DEVICE_Init();																	// init code for USB_DEVICE
 
-  BUZZER_BeepTIM();
+  BUZZER_BeepTIM();																		// Квакнуть баззером при старте
 
   for(;;)
   {
@@ -143,7 +153,7 @@ void StartDefaultTask(void *argument)													// implementing the defaultTas
   }
 }
 //======================================================================================
-void StartTask_IMU(void *argument)														// implementing the myTask_IMU thread.
+void StartTask_IMU(void *argument)														// Поток сканирования данных от МЕМС по вибрации
 {
   for(;;)
   {
@@ -151,7 +161,7 @@ void StartTask_IMU(void *argument)														// implementing the myTask_IMU t
   }
 }
 //======================================================================================
-void StartTask_LCD(void *argument)														// implementing the myTask_LCD thread.
+void StartTask_LCD(void *argument)														// Поток вывода на LCD экран
 {
 
   for(;;)
@@ -161,6 +171,11 @@ void StartTask_LCD(void *argument)														// implementing the myTask_LCD t
 	Display_MotorSpeed(250, 50, MotorSpeed);											// Показать скорость вращения мотора
 
 	Display_SystemVoltage(100, 5);
+
+	Display_Temperature(10, 100, Temperature_Air_RAW);									// Темература от датчика воздуха
+	Display_Temperature(10, 140, Temperature_Motor_RAW);								// Темература от датчика мотора
+	Display_Temperature(10, 180, Temperature_Driver_RAW);								// Темература от датчика драйвера
+
 
 	LED_GREEN_INV;
 
@@ -178,11 +193,11 @@ void StartTask_ADC(void *argument)														// Поток для скани�
   }
 }
 //======================================================================================
-void StartTask_ScanControls(void *argument)												// implementing the myTask_ScanCTRL thread.
+void StartTask_ScanControls(void *argument)												// Поток сканироваяни элементов управления
 {
   HAL_TIM_Base_Start_IT(&htim4);
 
-  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);												// Запустить TIM4 для анализа оборотов бака
+  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);											// Запустить TIM4 для анализа оборотов бака
 
   for(;;)
   {
@@ -202,7 +217,29 @@ void StartTask_ScanControls(void *argument)												// implementing the myTas
   }
 }
 //======================================================================================
-void StartTask_SetState(void *argument)													// implementing the myTask_SetState thread.
+void StartTask_ScanTemperature(void *argument)											// Поток сканирования температуры по 1-Wire от термодатчиков DS18B20
+{
+
+  osDelay(1000);
+
+  for(;;)
+  {
+	DS18B20_Measure_Async_Start(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Запрос на старт замера температуры воздуха
+	DS18B20_Measure_Async_Start(TEMP_MOTOR_1W_GPIO_Port, 	TEMP_MOTOR_1W_Pin);			// Запрос на старт замера температуры мотора
+	DS18B20_Measure_Async_Start(TEMP_DRIVER_1W_GPIO_Port,	TEMP_DRIVER_1W_Pin);		// Запрос на старт замера температуры драйвера мотора
+
+	osDelay(800);																		// задержка 800 мс для 12-битного преобразования
+
+	Temperature_Air_RAW		= DS18B20_Measure_Async_FinishN(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Возврат ответа от финальной фазы замера для температуры воздуха
+	Temperature_Motor_RAW	= DS18B20_Measure_Async_FinishN(TEMP_MOTOR_1W_GPIO_Port, 	TEMP_MOTOR_1W_Pin);			// Возврат ответа от финальной фазы замера для температуры мотора
+	Temperature_Driver_RAW	= DS18B20_Measure_Async_FinishN(TEMP_DRIVER_1W_GPIO_Port,	TEMP_DRIVER_1W_Pin);		// Возврат ответа от финальной фазы замера для температуры драйвера мотора
+
+
+    osDelay(10000);																		// Интервал сканирования температур - 10 сек
+  }
+}
+//======================================================================================
+void StartTask_SetState(void *argument)													// Поток установки сотояний системы
 {
   for(;;)
   {
@@ -212,7 +249,7 @@ void StartTask_SetState(void *argument)													// implementing the myTask_S
 	//DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)2.55));				// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V]
 	DAC_SetValue((uint8_t)((double)Speed_value_percent*(double)1.58));					// Установить скорость мотора и пересчитать шкалу из  [0..100] в [0..255], получим на выход е DAC напряжение [0..3.3V] (1.58 - коэф чтобы получить на выходе 0..5V после ЦАП+ОУ)
 
-	MotorSpeed = ((MotorSpeed_Period > 0) ? (60000/MotorSpeed_Period) : (0) );			// Пересчет периода оборотов мотора от датчика Холла в скорость (стелано на таймере-4)
+	MotorSpeed = ((MotorSpeed_Period > 0) ? ((uint16_t)((double)60000/(double)MotorSpeed_Period)) : (0) );			// Пересчет периода оборотов мотора от датчика Холла в скорость (стелано на таймере-4)
 
 
 	FAN_Set_Speed(Speed_value_percent);													// Установить скорость мотора вентилятора охлаждения (ШИМ)
