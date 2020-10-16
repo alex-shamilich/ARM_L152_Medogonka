@@ -51,7 +51,8 @@ osThreadId_t myTask_ScanTempHandle;
 const osThreadAttr_t myTask_ScanTemp_attributes = {
   .name = "myTask_ScanTemp",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+//  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 512 * 4
 };
 //======================================================================================
 osThreadId_t myTask_SetStateHandle;
@@ -172,10 +173,9 @@ void StartTask_LCD(void *argument)														// Поток вывода на 
 
 	Display_SystemVoltage(100, 5);
 
-	Display_Temperature(10, 100, Temperature_Air_RAW);									// Темература от датчика воздуха
-	Display_Temperature(10, 140, Temperature_Motor_RAW);								// Темература от датчика мотора
-	Display_Temperature(10, 180, Temperature_Driver_RAW);								// Темература от датчика драйвера
-
+	Display_Temperature(10, 100, Temperature_Motor);									// Темература от датчика мотора
+	Display_Temperature(10, 140, Temperature_Driver);									// Темература от датчика драйвера
+	Display_Temperature(10, 180, Temperature_Air);										// Темература от датчика воздуха
 
 	LED_GREEN_INV;
 
@@ -219,23 +219,23 @@ void StartTask_ScanControls(void *argument)												// Поток скани�
 //======================================================================================
 void StartTask_ScanTemperature(void *argument)											// Поток сканирования температуры по 1-Wire от термодатчиков DS18B20
 {
-
-  osDelay(1000);
+  osDelay(200);
 
   for(;;)
   {
-	DS18B20_Measure_Async_Start(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Запрос на старт замера температуры воздуха
 	DS18B20_Measure_Async_Start(TEMP_MOTOR_1W_GPIO_Port, 	TEMP_MOTOR_1W_Pin);			// Запрос на старт замера температуры мотора
 	DS18B20_Measure_Async_Start(TEMP_DRIVER_1W_GPIO_Port,	TEMP_DRIVER_1W_Pin);		// Запрос на старт замера температуры драйвера мотора
-
-	osDelay(800);																		// задержка 800 мс для 12-битного преобразования
-
-	Temperature_Air_RAW		= DS18B20_Measure_Async_FinishN(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Возврат ответа от финальной фазы замера для температуры воздуха
+	DS18B20_Measure_Async_Start(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Запрос на старт замера температуры воздуха
+	osDelay(1000);																		// задержка для 12-битного преобразования
 	Temperature_Motor_RAW	= DS18B20_Measure_Async_FinishN(TEMP_MOTOR_1W_GPIO_Port, 	TEMP_MOTOR_1W_Pin);			// Возврат ответа от финальной фазы замера для температуры мотора
-	Temperature_Driver_RAW	= DS18B20_Measure_Async_FinishN(TEMP_DRIVER_1W_GPIO_Port,	TEMP_DRIVER_1W_Pin);		// Возврат ответа от финальной фазы замера для температуры драйвера мотора
+	Temperature_Driver_RAW	= DS18B20_Measure_Async_FinishN(TEMP_DRIVER_1W_GPIO_Port, 	TEMP_DRIVER_1W_Pin);		// Возврат ответа от финальной фазы замера для температуры драйвера мотора
+	Temperature_Air_RAW		= DS18B20_Measure_Async_FinishN(TEMP_AIR_1W_GPIO_Port, 		TEMP_AIR_1W_Pin);			// Возврат ответа от финальной фазы замера для температуры воздуха
 
+	Temperature_Motor		= DS18B20_Temperature_Double(Temperature_Motor_RAW);		// Пересчет в double
+	Temperature_Driver		= DS18B20_Temperature_Double(Temperature_Driver_RAW);		// Пересчет в double
+	Temperature_Air			= DS18B20_Temperature_Double(Temperature_Air_RAW);			// Пересчет в double
 
-    osDelay(10000);																		// Интервал сканирования температур - 10 сек
+    osDelay(15000);																		// Интервал сканирования температур - 10 сек
   }
 }
 //======================================================================================
@@ -252,7 +252,8 @@ void StartTask_SetState(void *argument)													// Поток установ
 	MotorSpeed = ((MotorSpeed_Period > 0) ? ((uint16_t)((double)60000/(double)MotorSpeed_Period)) : (0) );			// Пересчет периода оборотов мотора от датчика Холла в скорость (стелано на таймере-4)
 
 
-	FAN_Set_Speed(Speed_value_percent);													// Установить скорость мотора вентилятора охлаждения (ШИМ)
+	//FAN_Set_Speed(Speed_value_percent);													// Установить скорость мотора вентилятора охлаждения (ШИМ)
+	FAN_Set_Speed(0);																	// Установить скорость мотора вентилятора охлаждения (ШИМ)
 
 
 

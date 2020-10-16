@@ -28,6 +28,8 @@
 // 		настроен TIM11 - для ШИМ управления оборотами мотора вентилятора охлаждения контроллера двигателя
 //		настроена возможность отладки FreeRTOS (подключен микросекундный таймер на TIM9)
 // 		настроен TIM4 - для рассчета оборотов бака (скорости мотора) по датчику Холла (см InputCaptureCallback + PeriodElaspedCallback)
+// 		настроен TIM10 - для микросекундных задержек Delay_us()
+//      настроены термодатчики DS18B20 на 1-Wire, опрос раз в 15 сек в отдельной задаче RtOS
 
 // I2C1 - подключение датчиков (MPU-6050,
 // SPI1 - SD Card
@@ -124,6 +126,7 @@ int main(void)
 	BUZZER_Beep();
 
 
+
 	// Рисуем начальную заставку на UART2
 	printf("\033[2J"); 																	// Очистка окна терминала.   //https://www.linux.org.ru/forum/development/628620
 	printf("\033[0;0H"); 																// задает абсолютные координаты курсора (строка, столбец)  // https://www.opennet.ru/base/dev/console_ctl.txt.html
@@ -132,8 +135,8 @@ int main(void)
 	printf("  Date: %s\n", __DATE__);
 	printf("  Time: %s\n", __TIME__);
 	printf("FreeRTOS. USART2->Virtual_COM, ADC, DAC\n");								// Строка приветствия
-	printf("TIM4, TIM9, TIM11 \n");														// Строка приветствия
-
+	printf("TIM4, TIM9, TIM10, TIM11 \n");												// Строка приветствия
+	printf("18B20\n");
 
 //	main_test();																		// Тесты LCD
 
