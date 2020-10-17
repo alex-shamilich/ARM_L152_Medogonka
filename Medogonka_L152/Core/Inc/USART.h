@@ -34,7 +34,7 @@
 #define UART4_RX_Pin 		GPIO_PIN_11
 #define UART4_RX_GPIO_Port 	GPIOC
 
-
+ // Консоль MicroRL
 #define UART5_TX_Pin 		GPIO_PIN_12
 #define UART5_TX_GPIO_Port 	GPIOC
 
@@ -54,6 +54,13 @@ void MX_USART2_UART_Init(void);
 void MX_USART3_UART_Init(void);
 void MX_UART4_Init(void);
 void MX_UART5_Init(void);
+
+#define PRIORITY_ISR_USART5_MainCPU	5
+#define PRIORITY_ISR_USART4			6
+#define PRIORITY_ISR_USART3 		7
+#define PRIORITY_ISR_USART2 		8
+#define PRIORITY_ISR_USART1 		9
+
 
 #ifdef __cplusplus
 }

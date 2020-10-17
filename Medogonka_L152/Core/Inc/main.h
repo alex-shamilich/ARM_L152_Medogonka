@@ -24,6 +24,17 @@ extern "C" {
 #include "Motor.h"
 #include "Display.h"
 #include "DS18B20.h"
+#include "EEPROM.h"
+
+#include "FreeRTOSUser.h"
+#include "ExchangeStruct.h"
+
+
+// MicroRL command console (Author: Samoylov Eugene aka Helius (ghelius@gmail.com))
+#include "microrl.h"
+#include "microrl_func.h"
+#include "microrl_uart.h"
+#include "microrl_func_get.h"
 
 
 // LCD LIL9488:

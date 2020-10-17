@@ -2,14 +2,15 @@
 // File Name          : freertos.c
 // Description        : Code for freertos applications
 //======================================================================================
+#include "main.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "main.h"
 #include "cmsis_os.h"
+#include "FreeRTOSUser.h"
 
-//#include "LCD_ili9488.h"
-//#include "LCD_ili9488_fonts.h"
+//======================================================================================
+// THREADs
 //======================================================================================
 typedef StaticQueue_t osStaticMessageQDef_t;
 osThreadId_t defaultTaskHandle;
@@ -62,6 +63,15 @@ const osThreadAttr_t myTask_SetState_attributes = {
   .stack_size = 128 * 4
 };
 //======================================================================================
+osThreadId_t myTask_MicroRLHandle;
+const osThreadAttr_t myTask_MicroRL_attributes = {
+  .name = "myTask_MicroRL",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 300 * 4
+};
+//======================================================================================
+// QUEUEs
+//======================================================================================
 osMessageQueueId_t myQueue_UART_RxHandle;
 uint8_t myQueue_UART_RxBuffer[ 32 * sizeof( uint8_t ) ];
 osStaticMessageQDef_t myQueue_UART_RxControlBlock;
@@ -73,12 +83,26 @@ const osMessageQueueAttr_t myQueue_UART_Rx_attributes = {
   .mq_mem = &myQueue_UART_RxBuffer,
   .mq_size = sizeof(myQueue_UART_RxBuffer)
 };
+
+//======================================================================================
+// MUTEX
 //======================================================================================
 osMutexId_t myMutex_I2C1Handle;
 const osMutexAttr_t myMutex_I2C1_attributes = {
   .name = "myMutex_I2C1"
 };
 //======================================================================================
+osMutexId_t MircoRL_Tx_MutexHandle;
+const osMutexAttr_t MutexMircoRL_Tx_attributes = {
+  .name = "MutexMircoRL_Tx"
+};
+//======================================================================================
+osMutexId_t MircoRL_TxCMD_MutexHandle;
+const osMutexAttr_t MutexMircoRL_TxCMD_attributes = {
+  .name = "MutexMircoRL_TxCMD"
+};
+//======================================================================================
+
 
 void StartDefaultTask(void *argument);
 void StartTask_IMU(void *argument);
@@ -87,6 +111,7 @@ void StartTask_ADC(void *argument);
 void StartTask_ScanTemperature(void *argument);
 void StartTask_ScanControls(void *argument);
 void StartTask_SetState(void *argument);
+void StartTask_MircoRL(void *argument);
 
 
 extern void MX_USB_DEVICE_Init(void);
@@ -123,6 +148,12 @@ void MX_FREERTOS_Init(void)																// FreeRTOS initialization
 {
   // Create the mutex(es)
   myMutex_I2C1Handle 		= osMutexNew(&myMutex_I2C1_attributes);						// creation of myMutex_I2C1
+  MircoRL_Tx_MutexHandle 	= osMutexNew(&MutexMircoRL_Tx_attributes);					// creation of MutexMircoRL_Tx
+  MircoRL_TxCMD_MutexHandle	= osMutexNew(&MutexMircoRL_TxCMD_attributes);				// creation of MutexMircoRL_TxCMD
+
+  MicroRL_xRxSemaphore = xSemaphoreCreateCounting(10,0);
+  MicroRL_xTxSemaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(MicroRL_xTxSemaphore);
 
   // Create the queue(s)
   myQueue_UART_RxHandle 	= osMessageQueueNew (32, sizeof(uint8_t), &myQueue_UART_Rx_attributes);	// creation of myQueue_UART_Rx
@@ -135,6 +166,7 @@ void MX_FREERTOS_Init(void)																// FreeRTOS initialization
   myTask_ScanCTRLHandle 	= osThreadNew(StartTask_ScanControls, NULL, &myTask_ScanCTRL_attributes);
   myTask_ScanTempHandle 	= osThreadNew(StartTask_ScanTemperature, NULL, &myTask_ScanTemp_attributes);
   myTask_SetStateHandle 	= osThreadNew(StartTask_SetState, NULL, &myTask_SetState_attributes);
+  myTask_MicroRLHandle 		= osThreadNew(StartTask_MircoRL, NULL, &myTask_MicroRL_attributes);
 }
 //======================================================================================
 void StartDefaultTask(void *argument)													// Поток по-умолчанию
@@ -261,3 +293,68 @@ void StartTask_SetState(void *argument)													// Поток установ
   }
 }
 //======================================================================================
+void StartTask_MircoRL(void *argument)													// командный интерпретатор
+{
+	UNUSED(argument);
+	microrl_terminalInit();																// нициализация командного интерпретатора
+
+	HAL_UART_Receive_IT(&huart5, (uint8_t *)MainCPU_Rx_Buffer, 1);						// делаем начальный запрос на асинхронный прием обного байта - стартуем прием данных от UART на прерываниях
+
+	while(1)
+	{
+		microrl_terminalProcess();														// Процесс просыпается от семафора MicroRL_xRxSemaphore
+	}
+}
+//=======================================================================================
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+//	//	if ( huart->Instance == USART1 ) 												// Если это колбэк по прерыванию от USART-1  - компас
+//	//	{
+//	////		USART2->DR = USART1->DR;												// делаем эхо вывод из компаса в виртуальный COM-порта на PC (самый быстрый вариант)
+//	//		MP_HCM505_RxCpltCallback(); 												// вызываем обработчик Callback окончания приема для компаса
+//	//	}
+//
+//		if ( huart->Instance == USART2 ) 												// Если это колбэк по прерыванию от USART-2  - запрос в терминал командной строки от PC
+//		{
+//	//		USART2->DR = USART3->DR;													// делаем эхо вывод в виртуальный COM-порта на PC (самый быстрый вариант)
+//		}
+//
+//
+//		if ( huart->Instance == USART3 ) 												// Если это колбэк по прерыванию от USART-3  - GPS
+//		{
+////			USART2->DR = USART3->DR;												// делаем эхо вывод из GPS приемника в виртуальный COM-порта на PC (самый быстрый вариант)
+////			MP_GPS_RxCpltCallback(); 												// вызываем обработчик Callback окончания приема для GPS
+////
+//			/* Создадим переменную куда будет положен результат API-функции xQueueReceiveFromISR(),
+//			он станет pdTRUE, если операция с очередью разблокирует более высокоприоритетную задачу.*/
+//			static portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+//			if( GPS_Rx_QueueHandle != 0 )
+//				xQueueSendFromISR( GPS_Rx_QueueHandle,  ( void * )&MP_GPS_USART_RxBuffer[0], &xHigherPriorityTaskWoken  ); // записываем в очередь принятый байт от GPS
+//			HAL_UART_Receive_IT(&huart3, (uint8_t *)MP_GPS_USART_RxBuffer, 1);			// делаем запрос на асинхронный прием обного байта
+//		}
+//
+		if ( huart->Instance == UART5 ) 												// Если это колбэк по прерыванию от USART-5  - запрос в терминал командной строки от MainCPU
+		{
+//			USART2->DR = UART5->DR;
+			//USART2->DR = MainCPU_Rx_Buffer[0];										// делаем эхо вывод в виртуальный COM-порта на PC (самый быстрый вариант)
+			//UART4->DR = MainCPU_Rx_Buffer[0];											// делаем эхо вывод в свой же порт
+
+			MircoRL_sRxRingBuf.data[MircoRL_sRxRingBuf.wrIdx++] = MainCPU_Rx_Buffer[0];	// складываем полученный байт в кольцевой буфер приема
+			if (MircoRL_sRxRingBuf.wrIdx >= MICRORL_uartSIZE_OF_RING_BUFFER)			// переход через 0
+			{
+				MircoRL_sRxRingBuf.wrIdx = 0;
+			}
+			portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+			xSemaphoreGiveFromISR(MicroRL_xRxSemaphore, &xHigherPriorityTaskWoken);		// Семафорим в StartTask_MircoRL что прилетел байт из UART и что-то с ним нужно сделать
+			if( xHigherPriorityTaskWoken != pdFALSE )
+			{
+				portYIELD();
+			}
+
+			HAL_UART_Receive_IT(&huart5, (uint8_t *)MainCPU_Rx_Buffer, 1);				// делаем опять запрос на асинхронный прием обного байта
+		}
+
+}
+//=======================================================================================
+
+

@@ -53,7 +53,7 @@ void MX_USART1_UART_Init(void)
 
 }
 //======================================================================================
-void MX_USART2_UART_Init(void)
+void MX_USART2_UART_Init(void)															// Virtual COM-Port возможность вывода сообщений с помощью простого printf (переопределен putc и заглушки к stdlib)
 {
 
   huart2.Instance = USART2;
@@ -107,11 +107,12 @@ void MX_UART4_Init(void)
 
 }
 //======================================================================================
-void MX_UART5_Init(void)
+void MX_UART5_Init(void)																// Консоль MicroRL
 {
 
   huart5.Instance = UART5;
   huart5.Init.BaudRate = 115200;
+//  huart5.Init.BaudRate = 9600;
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
   huart5.Init.StopBits = UART_STOPBITS_1;
   huart5.Init.Parity = UART_PARITY_NONE;
@@ -147,7 +148,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, PRIORITY_ISR_USART1, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
   else if(uartHandle->Instance==USART2)
@@ -168,7 +169,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USART2 interrupt Init */
-    HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART2_IRQn, PRIORITY_ISR_USART2, 0);
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   }
   else if(uartHandle->Instance==USART3)
@@ -189,7 +190,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USART3 interrupt Init */
-    HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART3_IRQn, PRIORITY_ISR_USART3, 0);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
   }
   else if(uartHandle->Instance==UART4)
@@ -210,7 +211,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* UART4 interrupt Init */
-    HAL_NVIC_SetPriority(UART4_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(UART4_IRQn, PRIORITY_ISR_USART4, 0);
     HAL_NVIC_EnableIRQ(UART4_IRQn);
   }
   else if(uartHandle->Instance==UART5)
@@ -239,7 +240,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(UART5_RX_GPIO_Port, &GPIO_InitStruct);
 
     /* UART5 interrupt Init */
-    HAL_NVIC_SetPriority(UART5_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(UART5_IRQn, PRIORITY_ISR_USART5_MainCPU, 0);
     HAL_NVIC_EnableIRQ(UART5_IRQn);
   }
 }
