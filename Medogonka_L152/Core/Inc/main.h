@@ -13,8 +13,6 @@ extern "C" {
 #include "stm32l1xx_hal.h"
 #include "stdio.h"
 
-#include "State.h"
-
 #include "adc.h"
 #include "dac.h"
 #include "gpio.h"
@@ -27,8 +25,6 @@ extern "C" {
 #include "EEPROM.h"
 
 #include "FreeRTOSUser.h"
-#include "ExchangeStruct.h"
-
 
 // MicroRL command console (Author: Samoylov Eugene aka Helius (ghelius@gmail.com))
 #include "microrl.h"

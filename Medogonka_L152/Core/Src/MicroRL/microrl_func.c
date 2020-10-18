@@ -38,7 +38,7 @@ static int prv_execute(int argc, const char * const * argv);
 
 static void prv_registerBasicTerminalFuncs();
 
-char str[255];																			//  буфер sprintf для вывода сообщений в терминал
+static char str[255];																			//  буфер sprintf для вывода сообщений в терминал
 int terminalFuncArrayIndex = 0;
 
 //=======================================================================================
@@ -194,33 +194,34 @@ void TerminalPrintINT_KEYS(void)														// если было какое л
 //=======================================================================================
 void TerminalPrintINT_ENCODER(void)														// если было какое либо изменение состояния энкодера - сразу пишем в терминал сообщение об этом
 {
-//	osStatus statusTx		= osMutexWait(MircoRL_Tx_MutexHandle, portMAX_DELAY);		// ждем пока не освободиться порт терминала на передачу
-//	osStatus statusCMD      = osMutexWait(MircoRL_TxCMD_MutexHandle, portMAX_DELAY);	// ждем пока не закончится передача полного блока команды "get all"
-//
-//	if ((statusCMD == osOK)&&(statusTx == osOK))
-//	{
-//		if (ExchangeStruct.TerminalFormat == TERMINALFORMAT_HUMAN)
-//		{
-//			microrl_printString(ENDL);    // new line
-//		}
-//
-//		//sprintf(str, "ENCODER_VAL=%d\t", 				(int8_t)(MP_ExchangeStruct.Encoder_State->MP_Encoder_Value - ENCODER_VAL_DEFAULT));	microrl_printString(str);
-//		sprintf(str, "ENCODER_VAL=%u\t", 				(uint8_t)(ExchangeStruct.Encoder_State->MP_Encoder_Value));						microrl_printString(str);
-//		sprintf(str, "ENCODER_DIR=%lu\t", 				ExchangeStruct.Encoder_State->MP_Encoder_Dir);									microrl_printString(str);
-//		sprintf(str, "ENCODER_DELTA=%d\n", 				(int8_t)(ExchangeStruct.Encoder_State->MP_Encoder_Delta));						microrl_printString(str);
-//		//sprintf(str, "ENCODER_DELTA=%ld\n", 			(MP_ExchangeStruct.Encoder_State->MP_Encoder_Delta));								microrl_printString(str);
-//
-//		if (ExchangeStruct.TerminalFormat == TERMINALFORMAT_HUMAN)
-//		{
-//			microrl_printString(prl->prompt_str);
-//		}
-//		else
-//		{
-//		}
-//
-//		osMutexRelease(MircoRL_TxCMD_MutexHandle);
-//		osMutexRelease(MircoRL_Tx_MutexHandle);
-//	}
+	osStatus statusTx		= osMutexWait(MircoRL_Tx_MutexHandle, portMAX_DELAY);		// ждем пока не освободиться порт терминала на передачу
+	osStatus statusCMD      = osMutexWait(MircoRL_TxCMD_MutexHandle, portMAX_DELAY);	// ждем пока не закончится передача полного блока команды "get all"
+
+	if ((statusCMD == osOK)&&(statusTx == osOK))
+	{
+		if (ExchangeStruct.TerminalFormat == TERMINALFORMAT_HUMAN)
+		{
+			microrl_printString(ENDL);    // new line
+		}
+
+		//sprintf(str, "ENCODER_VAL=%d\t", 				(int8_t)(MP_ExchangeStruct.Encoder_State->MP_Encoder_Value - ENCODER_VAL_DEFAULT));	microrl_printString(str);
+		sprintf(str, "ENCODER_VAL=%u\t", 				(uint8_t)(ExchangeStruct.Encoder_State->MP_Encoder_Value));						microrl_printString(str);
+		sprintf(str, "ENCODER_DIR=%lu\t", 				ExchangeStruct.Encoder_State->MP_Encoder_Dir);									microrl_printString(str);
+		sprintf(str, "ENCODER_DELTA=%d\n", 				(int8_t)(ExchangeStruct.Encoder_State->MP_Encoder_Delta));						microrl_printString(str);
+//		sprintf(str, "BTN=%d\n", 						(int8_t)(ExchangeStruct.Encoder_State->Btn_pressed));							microrl_printString(str);
+		//sprintf(str, "ENCODER_DELTA=%ld\n", 			(MP_ExchangeStruct.Encoder_State->MP_Encoder_Delta));								microrl_printString(str);
+
+		if (ExchangeStruct.TerminalFormat == TERMINALFORMAT_HUMAN)
+		{
+			microrl_printString(prl->prompt_str);
+		}
+		else
+		{
+		}
+
+		osMutexRelease(MircoRL_TxCMD_MutexHandle);
+		osMutexRelease(MircoRL_Tx_MutexHandle);
+	}
 }
 //=======================================================================================
 void TerminalPrintINT_LRF(void)															// если пришли данные от дальномера - сразу пишем в терминал сообщение об этом

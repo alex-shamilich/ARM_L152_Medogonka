@@ -10,5 +10,6 @@ void Display_SystemVoltage(uint16_t pos_x, uint16_t pos_y);										// Пока
 void Display_MotorDirection(uint16_t pos_x, uint16_t pos_y, TMotorDirection AMotorDirection);	// Показать направление вращения мотора
 void Display_MotorSpeed(uint16_t pos_x, uint16_t pos_y, uint16_t ASpeed);	 					// Показать скорость вращения мотора
 void Display_Temperature(uint16_t pos_x, uint16_t pos_y, double ATemp); 						// Показать температуру
+void Display_Encoder(uint16_t pos_x, uint16_t pos_y);											// Показать значение энкодера
 
 #endif /* INC_DISPLAY_H_ */

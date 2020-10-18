@@ -31,6 +31,7 @@
 // 		настроен TIM10 - для микросекундных задержек Delay_us()
 //      настроены термодатчики DS18B20 на 1-Wire, опрос раз в 15 сек в отдельной задаче RtOS
 // 		встроена командная консоль MicroRL на порт UART5 (115200/8/N/1)
+// 		настроен инкрементальный энкодер на аппаратном таймере (TIM3) см: Encoder_Scan()
 
 // I2C1 - подключение датчиков (MPU-6050,
 // SPI1 - SD Card
@@ -67,7 +68,7 @@
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
-
+#include "ExchangeStruct.h"
 
 #include "LCD_ili9488_test.h"
 
@@ -102,6 +103,8 @@ int main(void)
 
 	DS18B20_Init();																		// Инициализация термодатчиков
 
+	Encoder_Init();																		// Настройка энкодера (GPIO, Таймер, переменные)
+
 	MX_FATFS_Init();																	// Настройка для работы с файлами на SD Card
 
 	Keys_Init();																		// Настройка GPIO портов для кнопок
@@ -123,6 +126,12 @@ int main(void)
 	LCD9488_GUI_SetOrientation(1);														// Установка ориентации экрана
 	HAL_Delay(100);
 
+
+
+	//подключаем в единую структуру все данные от переферии
+	ExchangeStruct.Encoder_State =			&Encoder_State;							// структура с информацией от энкодера
+
+
 	EEPROM_OptionsLoad();																// чтение настроек по умолчанию и чтение сознаненных настроек из EEPROM
 
 	BUZZER_Beep();
@@ -136,9 +145,11 @@ int main(void)
 	printf("Version: %s\n", FIRMWARE_VER);
 	printf("  Date: %s\n", __DATE__);
 	printf("  Time: %s\n", __TIME__);
-	printf("FreeRTOS. MircoRL. USART2->Virtual_COM, ADC, DAC\n");						// Строка приветствия
-	printf("TIM4, TIM9, TIM10, TIM11 \n");												// Строка приветствия
-	printf("18B20\n");
+	printf("FreeRTOS, MircoRL, ADC, DAC, 1-Wire\n");
+	printf("UART2->Virtual_COM\n");
+	printf("UART5->MicroRL\n");
+	printf("TIM4, TIM9, TIM10, TIM11 \n");
+	printf("18B20, Encoder\n");
 
 //	main_test();																		// Тесты LCD
 
