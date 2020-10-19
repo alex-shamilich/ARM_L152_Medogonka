@@ -192,7 +192,7 @@ void StartTask_IMU(void *argument)														// Поток сканирова
 {
   for(;;)
   {
-    osDelay(1);
+    osDelay(10);
   }
 }
 //======================================================================================
@@ -246,14 +246,13 @@ void StartTask_ScanControls(void *argument)												// Поток скани�
 	}
 
 
+
+
 //	// Мигаем подсветкой согласно датчику вращения todo: временно
 //	if (HAL_GPIO_ReadPin(SNS_HALL_IN_GPIO_Port,  SNS_HALL_IN_Pin) == GPIO_PIN_RESET)
 //		LED_LIGHT_RESET;
 //	else
 //		LED_LIGHT_SET;
-
-
-
 
     osDelay(10);
   }
@@ -343,27 +342,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 //			HAL_UART_Receive_IT(&huart3, (uint8_t *)MP_GPS_USART_RxBuffer, 1);			// делаем запрос на асинхронный прием обного байта
 //		}
 //
-		if ( huart->Instance == UART5 ) 												// Если это колбэк по прерыванию от USART-5  - запрос в терминал командной строки от MainCPU
+	if ( huart->Instance == UART5 ) 												// Если это колбэк по прерыванию от USART-5  - запрос в терминал MicroRL командной строки
+	{
+		//USART2->DR = MainCPU_Rx_Buffer[0];										// делаем эхо вывод в виртуальный COM-порта на PC (самый быстрый вариант)
+
+		MircoRL_sRxRingBuf.data[MircoRL_sRxRingBuf.wrIdx++] = MainCPU_Rx_Buffer[0];	// складываем полученный байт в кольцевой буфер приема
+		if (MircoRL_sRxRingBuf.wrIdx >= MICRORL_uartSIZE_OF_RING_BUFFER)			// переход через 0
 		{
-//			USART2->DR = UART5->DR;
-			//USART2->DR = MainCPU_Rx_Buffer[0];										// делаем эхо вывод в виртуальный COM-порта на PC (самый быстрый вариант)
-			//UART4->DR = MainCPU_Rx_Buffer[0];											// делаем эхо вывод в свой же порт
-
-			MircoRL_sRxRingBuf.data[MircoRL_sRxRingBuf.wrIdx++] = MainCPU_Rx_Buffer[0];	// складываем полученный байт в кольцевой буфер приема
-			if (MircoRL_sRxRingBuf.wrIdx >= MICRORL_uartSIZE_OF_RING_BUFFER)			// переход через 0
-			{
-				MircoRL_sRxRingBuf.wrIdx = 0;
-			}
-			portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-			xSemaphoreGiveFromISR(MicroRL_xRxSemaphore, &xHigherPriorityTaskWoken);		// Семафорим в StartTask_MircoRL что прилетел байт из UART и что-то с ним нужно сделать
-			if( xHigherPriorityTaskWoken != pdFALSE )
-			{
-				portYIELD();
-			}
-
-			HAL_UART_Receive_IT(&huart5, (uint8_t *)MainCPU_Rx_Buffer, 1);				// делаем опять запрос на асинхронный прием обного байта
+			MircoRL_sRxRingBuf.wrIdx = 0;
 		}
-
+		portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+		xSemaphoreGiveFromISR(MicroRL_xRxSemaphore, &xHigherPriorityTaskWoken);		// Семафорим в StartTask_MircoRL что прилетел байт из UART и что-то с ним нужно сделать
+		if( xHigherPriorityTaskWoken != pdFALSE )
+		{
+			portYIELD();
+		}
+		HAL_UART_Receive_IT(&huart5, (uint8_t *)MainCPU_Rx_Buffer, 1);				// делаем опять запрос на асинхронный прием обного байта
+	}
 }
 //=======================================================================================
 
