@@ -41,7 +41,7 @@
 // 		UART2:	Virtual COM-Port возможность вывода сообщений с помощью простого printf (переопределен putc и заглушки к stdlib)
 // 		UART3:
 // 		UART4:
-// 		UART5:  Консоль MicroRL
+// 		UART5:  Консоль MicroRL (через BLUETOOTH адаптер)
 // Таймеры:
 //		TIM2	отключен
 //		TIM3	обслуживание энкодера для меню
@@ -72,8 +72,16 @@
 
 #include "LCD_ili9488_test.h"
 
+
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+
+//======================================================================================
+int fatfs_test(void)
+{
+
+}
+
 //======================================================================================
 int main(void)
 {
@@ -150,6 +158,9 @@ int main(void)
 	printf("UART5->MicroRL\n");
 	printf("TIM4, TIM9, TIM10, TIM11 \n");
 	printf("18B20, Encoder\n");
+
+
+	fatfs_test();
 
 //	main_test();																		// Тесты LCD
 

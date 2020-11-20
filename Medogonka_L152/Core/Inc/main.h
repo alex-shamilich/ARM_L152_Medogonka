@@ -10,7 +10,6 @@ extern "C" {
 #endif
 
 #include "stm32l1xx_hal.h"
-#include "stm32l1xx_hal.h"
 #include "stdio.h"
 
 #include "adc.h"
@@ -25,6 +24,9 @@ extern "C" {
 #include "EEPROM.h"
 
 #include "FreeRTOSUser.h"
+
+// FatFs
+
 
 // MicroRL command console (Author: Samoylov Eugene aka Helius (ghelius@gmail.com))
 #include "microrl.h"
